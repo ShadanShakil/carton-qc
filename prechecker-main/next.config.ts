@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
     "canvas",
     "pdfjs-dist",
   ],
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./src/lib/cv-worker.mjs"]
+  }
 };
 
 export default nextConfig;

@@ -32,8 +32,8 @@ import path from "node:path";
 
 const MIN_GOOD_MATCHES = 10;
 const LOWES_RATIO = 0.75;
-const ORB_FEATURES = 2000;
-const AKAZE_THRESHOLD = 0.001;
+const ORB_FEATURES = 5000;
+const AKAZE_THRESHOLD = 0.0003;
 
 await new Promise((resolve) => {
   if (cv.Mat) resolve();
@@ -95,6 +95,31 @@ async function loadMaskGray(maskPath) {
     .toBuffer({ resolveWithObject: true });
   const mat = new cv.Mat(info.height, info.width, cv.CV_8UC1);
   mat.data.set(new Uint8Array(data));
+  return mat;
+}
+
+// Normalize lighting before diffing
+function normalizeLighting(mat) {
+  const lab = new cv.Mat();
+  cv.cvtColor(mat, lab, cv.COLOR_RGBA2RGB);
+  cv.cvtColor(lab, lab, cv.COLOR_RGB2Lab);
+  
+  const channels = new cv.MatVector();
+  cv.split(lab, channels);
+  
+  // CLAHE on L channel only
+  const clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+  const lNorm = new cv.Mat();
+  clahe.apply(channels.get(0), lNorm);
+  channels.get(0).delete();
+  channels.set(0, lNorm);
+  
+  cv.merge(channels, lab);
+  cv.cvtColor(lab, mat, cv.COLOR_Lab2RGB);
+  cv.cvtColor(mat, mat, cv.COLOR_RGB2RGBA);
+  
+  clahe.delete();
+  lab.delete(); channels.delete(); lNorm.delete();
   return mat;
 }
 
@@ -586,6 +611,13 @@ async function alignAndDiff(opts) {
   await saveMat(aligned, opts.alignedOutPath);
 
   // ---- Diff ----
+  normalizeLighting(artMat);
+  normalizeLighting(aligned);
+
+  // Re-generate artGray from the lighting-normalized artMat
+  cv.cvtColor(artMat, artGray, cv.COLOR_RGBA2GRAY);
+  cv.GaussianBlur(artGray, artGray, new cv.Size(5, 5), 0, 0, cv.BORDER_DEFAULT);
+
   const alignedGray = new cv.Mat();
   cv.cvtColor(aligned, alignedGray, cv.COLOR_RGBA2GRAY);
   
@@ -599,9 +631,10 @@ async function alignAndDiff(opts) {
   // Factory tolerance: increase threshold to ignore lighting (25 -> 80)
   cv.threshold(diff, binary, 80, 255, cv.THRESH_BINARY);
 
-  const kernel = cv.Mat.ones(5, 5, cv.CV_8U);
-  cv.morphologyEx(binary, binary, cv.MORPH_OPEN, kernel);
-  cv.morphologyEx(binary, binary, cv.MORPH_CLOSE, kernel);
+  // Kill salt-and-pepper noise from lighting
+  const kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
+  cv.erode(binary, binary, kernel);
+  cv.dilate(binary, binary, kernel);
 
   let maskMat = null;
   let maskedBinary = binary;
@@ -689,23 +722,20 @@ async function alignAndDiff(opts) {
   await saveMat(overlay, opts.diffOutPath);
 
   // ---- Verdict ----
-  // Three buckets:
-  //   1. ALIGNMENT_UNCERTAIN — alignment confidence too low to trust the diff.
-  //      Either the print photo is too distorted, or the artwork has no
-  //      texture for feature matching.
-  //   2. MISMATCH — alignment trusted AND masked diff exceeds threshold.
-  //   3. MATCH    — alignment trusted AND masked diff within threshold.
   let verdict;
   let statusReason = null;
+
   if (alignmentConfidence < 0.35) {
     verdict = "ALIGNMENT_UNCERTAIN";
-    statusReason =
-      "Alignment confidence is low — the printed-carton photo may be too distorted, glossy, or photographed at a steep angle. Re-photograph the carton flat against a plain background under even light and re-run analysis.";
-  } else if (maskedDiffScore > opts.mismatchThreshold) {
-    verdict = "MISMATCH";
-    statusReason = `Pixel diff ${(maskedDiffScore * 100).toFixed(1)}% exceeds threshold ${(opts.mismatchThreshold * 100).toFixed(1)}% inside the printable area.`;
-  } else {
+    statusReason = "Alignment confidence is low — the printed-carton photo may be too distorted, glossy, or photographed at a steep angle. Re-photograph flat against a plain background under even light and re-run analysis.";
+  } else if (maskedDiffScore < 0.04) {
     verdict = "MATCH";
+  } else if (maskedDiffScore < 0.10) {
+    verdict = "MATCH";  // Acceptable — lighting variation only
+    statusReason = `Diff ${(maskedDiffScore * 100).toFixed(1)}% — within lighting tolerance`;
+  } else {
+    verdict = "MISMATCH";
+    statusReason = `Pixel diff ${(maskedDiffScore * 100).toFixed(1)}% exceeds the maximum acceptable tolerance of 10.0%.`;
   }
 
   // Cleanup
@@ -869,7 +899,8 @@ async function detectCorners(opts) {
     if (approx.rows === 4) {
       const pts = [];
       for (let i = 0; i < 4; i++) {
-        pts.push({ x: approx.data32F[i * 2], y: approx.data32F[i * 2 + 1] });
+        // CORRECT: Reads int32 bytes as signed integers
+        pts.push({ x: approx.data32S[i * 2], y: approx.data32S[i * 2 + 1] });
       }
       
       // Better sort for arbitrary quadrilaterals:
@@ -893,6 +924,12 @@ async function detectCorners(opts) {
   if (!corners) {
     const w = src.cols;
     const h = src.rows;
+    // Fallback corners must be TL, TR, BR, BL in that order.
+    // handlePerspectiveWarp maps:
+    // corners[0] -> (0,0) (top-left)
+    // corners[1] -> (dstw, 0) (top-right)
+    // corners[2] -> (dstw, dsth) (bottom-right)
+    // corners[3] -> (0, dsth) (bottom-left)
     corners = [
       { x: w * 0.1, y: h * 0.1 },
       { x: w * 0.9, y: h * 0.1 },

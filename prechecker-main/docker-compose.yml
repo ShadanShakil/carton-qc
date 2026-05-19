@@ -1,0 +1,31 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - carton_storage:/app/storage
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=file:/app/storage/prod.db
+      - STORAGE_ROOT=/app/storage
+      # Replace this with a random 32-character string in production
+      - AUTH_SECRET=replace-with-a-random-32-char-string
+      - QC_MISMATCH_THRESHOLD=0.06
+      # Set up SMTP for email alerts
+      # - SMTP_HOST=smtp.gmail.com
+      # - SMTP_PORT=587
+      # - SMTP_USER=you@gmail.com
+      # - SMTP_PASS=your-app-password
+      # - SMTP_FROM="Carton QC <you@gmail.com>"
+      # - ADMIN_ALERT_EMAILS=admin@yourfactory.com
+    restart: always
+
+volumes:
+  carton_storage:
+    driver: local

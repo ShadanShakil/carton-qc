@@ -1,10 +1,16 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
+import { randomBytes } from "node:crypto";
 
 export type Point = { x: number; y: number };
 
-const WORKER = path.join(process.cwd(), "src", "lib", "cv-worker.mjs");
+const WORKER = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "cv-worker.mjs"
+);
 
 function runWorker<T>(args: object): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -40,10 +46,10 @@ export async function perspectiveWarp(
   targetWidth?: number, 
   targetHeight?: number
 ): Promise<Buffer> {
-  const tempIn = path.join(process.cwd(), "tmp", `warp-in-${Date.now()}.png`);
-  const tempOut = path.join(process.cwd(), "tmp", `warp-out-${Date.now()}.png`);
+  const id = randomBytes(8).toString("hex");
+  const tempIn = path.join(tmpdir(), `carton-warp-${id}-in.png`);
+  const tempOut = path.join(tmpdir(), `carton-warp-${id}-out.png`);
   
-  await fs.mkdir(path.dirname(tempIn), { recursive: true });
   await fs.writeFile(tempIn, imageBuffer);
   
   try {
@@ -65,8 +71,8 @@ export async function perspectiveWarp(
 }
 
 export async function detectCorners(imageBuffer: Buffer): Promise<Point[]> {
-  const tempIn = path.join(process.cwd(), "tmp", `detect-in-${Date.now()}.png`);
-  await fs.mkdir(path.dirname(tempIn), { recursive: true });
+  const id = randomBytes(8).toString("hex");
+  const tempIn = path.join(tmpdir(), `carton-detect-${id}-in.png`);
   await fs.writeFile(tempIn, imageBuffer);
   
   try {

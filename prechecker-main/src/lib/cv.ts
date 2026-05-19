@@ -10,6 +10,7 @@
  */
 import { spawn } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export type DefectRegion = {
   x: number;
@@ -61,7 +62,10 @@ export type ExtractMaskResult = {
   method: "hsv-component" | "adaptive-contour" | "fallback-full";
 };
 
-const WORKER = path.join(process.cwd(), "src", "lib", "cv-worker.mjs");
+const WORKER = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "cv-worker.mjs"
+);
 
 function runWorker<T>(args: object): Promise<T> {
   return new Promise((resolve, reject) => {
