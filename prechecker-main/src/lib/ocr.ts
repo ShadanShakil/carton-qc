@@ -21,9 +21,12 @@ let workerPromise: Promise<Worker> | null = null;
 async function getWorker(): Promise<Worker> {
   if (workerPromise) return workerPromise;
   workerPromise = (async () => {
-    // Load both English and Arabic traineddata. tesseract.js will download
-    // the models on first use and cache them to disk under `/tmp`.
-    const w = await createWorker(["eng", "ara"]);
+    // Load both English and Arabic traineddata from local files.
+    // This allows offline deployment without downloading models from a CDN.
+    const w = await createWorker(["eng", "ara"], undefined, {
+      langPath: process.cwd(),
+      gzip: false,
+    });
     return w;
   })();
   return workerPromise;

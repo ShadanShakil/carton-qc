@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "QC Vision — AI-Powered Quality Control Platform",
+  title: "New ART Development & Inspection — AI-Powered Quality Control Platform",
   description:
     "Enterprise carton-printing quality control: pre-print artwork validation and post-print inspection, powered by AI.",
 };

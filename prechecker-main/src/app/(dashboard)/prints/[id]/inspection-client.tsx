@@ -1,4 +1,5 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -7,11 +8,13 @@ import {
   AlertTriangle,
   Layers,
   Columns2,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/components/ui/cn";
+import { Callout } from "@/components/ui/Callout";
 
 type Region = {
   x: number;
@@ -31,6 +34,10 @@ type Props = {
   imageHeight: number;
   status: string;
   diffScore: number | null;
+  printJobId: string;
+  verdict: string | null;
+  statusReason: string | null;
+  canDecide: boolean;
 };
 
 type Tab = "side-by-side" | "overlay";
@@ -64,17 +71,65 @@ export default function InspectionClient({
   imageHeight,
   status,
   diffScore,
+  printJobId,
+  verdict,
+  statusReason,
+  canDecide,
 }: Props) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("side-by-side");
   const [hovered, setHovered] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const accuracy =
     diffScore != null ? Math.max(0, 100 - diffScore * 100) : null;
   const isPass = status === "MATCH";
-  const isFail = status === "MISMATCH";
+  const isFail = status === "MISMATCH" || status === "ALIGNMENT_UNCERTAIN";
+
+  const isManuallyAccepted = status === "MATCH" && (verdict === "MISMATCH" || verdict === "ALIGNMENT_UNCERTAIN");
+  const isManuallyRejected = (status === "MISMATCH" || status === "ALIGNMENT_UNCERTAIN") && !!statusReason?.startsWith("Rejected by");
+  const isDecided = isManuallyAccepted || isManuallyRejected;
+  const showWarning = (verdict === "MISMATCH" || verdict === "ALIGNMENT_UNCERTAIN") && !isDecided;
+
+  async function decide(decision: "ACCEPT" | "REJECT") {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/prints/${printJobId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ decision }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error || "Failed to submit decision");
+      } else {
+        router.refresh();
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while submitting decision");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div className="space-y-5">
+      {showWarning && (
+        <Callout
+          title={verdict === "ALIGNMENT_UNCERTAIN" ? "Low Alignment Confidence" : "Below Matching Threshold"}
+          tone="warning"
+          icon={<AlertTriangle size={16} />}
+          className="shadow-sm"
+        >
+          {verdict === "ALIGNMENT_UNCERTAIN" ? (
+            <>The printed carton photo alignment confidence is too low. The photo may be distorted, glossy, or photographed at an angle. Please review the comparison and decide whether to <strong>Accept</strong> or <strong>Reject</strong> this print job anyway.</>
+          ) : (
+            <>This print carton&apos;s accuracy is below the acceptable tolerance threshold. Defect regions have been automatically detected. Please review the comparison and decide whether to <strong>Accept</strong> or <strong>Reject</strong> this print job.</>
+          )}
+        </Callout>
+      )}
+
       {/* Tabs */}
       <Card>
         <div className="flex items-center gap-1 border-b border-slate-100 px-3 py-2">
@@ -165,12 +220,12 @@ export default function InspectionClient({
               <div className="mt-0.5">
                 {isPass && (
                   <Badge tone="success" withDot>
-                    Pass
+                    {isManuallyAccepted ? "Pass (Override)" : "Pass"}
                   </Badge>
                 )}
                 {isFail && (
                   <Badge tone="danger" withDot>
-                    Fail / Hold
+                    {isManuallyRejected ? "Fail / Hold (Rejected)" : "Fail / Hold"}
                   </Badge>
                 )}
                 {!isPass && !isFail && (
@@ -187,20 +242,50 @@ export default function InspectionClient({
               variant="success"
               iconLeft={<CheckCircle2 size={16} />}
               disabled
-              title="Auto-approved by analysis"
+              title={isManuallyAccepted ? "Manually approved by override" : "Auto-approved by analysis"}
             >
-              Approved
+              {isManuallyAccepted ? "Approved (Manual Override)" : "Approved"}
             </Button>
           )}
           {isFail && (
-            <Button
-              variant="danger"
-              iconLeft={<XCircle size={16} />}
-              disabled
-              title="Flagged for review"
-            >
-              On Hold
-            </Button>
+            isManuallyRejected ? (
+              <Button
+                variant="danger"
+                iconLeft={<XCircle size={16} />}
+                disabled
+                title="Manually rejected by inspector"
+              >
+                On Hold (Rejected)
+              </Button>
+            ) : showWarning && canDecide ? (
+              <div className="flex gap-2">
+                <Button
+                  variant="success"
+                  iconLeft={busy ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
+                  disabled={busy}
+                  onClick={() => decide("ACCEPT")}
+                >
+                  Accept Override
+                </Button>
+                <Button
+                  variant="danger"
+                  iconLeft={busy ? <Loader2 className="animate-spin" size={16} /> : <XCircle size={16} />}
+                  disabled={busy}
+                  onClick={() => decide("REJECT")}
+                >
+                  Reject Print
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="danger"
+                iconLeft={<XCircle size={16} />}
+                disabled
+                title="Flagged for review"
+              >
+                On Hold
+              </Button>
+            )
           )}
         </div>
       </Card>

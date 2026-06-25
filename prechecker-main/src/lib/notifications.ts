@@ -55,9 +55,9 @@ export async function notifyAdminsOfMismatch(opts: {
   if (t && emails.length > 0) {
     try {
       await t.sendMail({
-        from: process.env.SMTP_FROM ?? "Carton QC <noreply@example.com>",
+        from: process.env.SMTP_FROM ?? "New ART Development & Inspection <noreply@example.com>",
         to: emails.join(","),
-        subject: "[Carton QC] Print mismatch detected",
+        subject: "[New ART Development & Inspection] Print mismatch detected",
         text: `${message}\n\nReview: ${process.env.NEXTAUTH_URL ?? ""}${link}\n`,
       });
     } catch (err) {

@@ -51,8 +51,8 @@ function LoginForm() {
         >
           <Focus size={28} strokeWidth={2.4} />
         </motion.div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">
-          QC Vision
+        <h1 className="text-2xl font-semibold tracking-tight text-white text-center leading-tight">
+          New ART Development & Inspection
         </h1>
         <p className="text-sm text-slate-400">
           AI-Powered Quality Control Platform
@@ -154,7 +154,7 @@ function LoginForm() {
       </motion.form>
 
       <p className="mt-6 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} QC Vision. Enterprise Quality Control
+        © {new Date().getFullYear()} New ART Development & Inspection. Enterprise Quality Control
         Platform
       </p>
     </motion.div>

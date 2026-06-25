@@ -1,4 +1,4 @@
-// Prisma schema for Carton QC MVP.
+// Prisma schema for New ART Development & Inspection MVP.
 // Uses SQLite for zero-config local dev; swap `provider` to `postgresql` for prod.
 
 generator client {

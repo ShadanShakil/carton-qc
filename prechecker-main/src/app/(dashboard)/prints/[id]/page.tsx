@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { MotionPage } from "@/components/ui/MotionPage";
+import { auth } from "@/lib/auth";
+import { CAN_UPLOAD_PRINT, hasRole } from "@/lib/roles";
 import InspectionClient from "./inspection-client";
 import { DeletePrintButton } from "./delete-button";
 
@@ -59,6 +61,9 @@ export default async function PrintDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const session = await auth();
+  const canDecide = hasRole(session?.user?.role, CAN_UPLOAD_PRINT);
+
   const job = await prisma.printJob.findUnique({
     where: { id },
     include: {
@@ -124,6 +129,10 @@ export default async function PrintDetail({
           imageHeight={report?.height ?? 1}
           status={job.status}
           diffScore={job.diffScore}
+          printJobId={job.id}
+          verdict={job.verdict}
+          statusReason={job.statusReason}
+          canDecide={canDecide}
         />
 
 

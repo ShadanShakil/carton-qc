@@ -1,4 +1,4 @@
-# Carton QC — MVP
+# New ART Development & Inspection — MVP
 
 Two-stage quality control for a carton factory, built with **Next.js 16 + TypeScript + Prisma + SQLite**. Zero paid services.
 
@@ -96,7 +96,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=you@gmail.com
 SMTP_PASS=your-16-char-app-password
-SMTP_FROM="Carton QC <you@gmail.com>"
+SMTP_FROM="New ART Development & Inspection <you@gmail.com>"
 ADMIN_ALERT_EMAILS=admin@yourfactory.com
 ```
 

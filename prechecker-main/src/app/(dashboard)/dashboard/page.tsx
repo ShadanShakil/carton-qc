@@ -131,8 +131,8 @@ export default async function DashboardPage() {
     <MotionPage>
       {/* Welcome banner */}
       <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50/60 p-6 sm:p-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          Welcome to QC Vision{firstName ? `, ${firstName}` : ""}
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl leading-tight">
+          Welcome to New ART Development & Inspection{firstName ? `, ${firstName}` : ""}
         </h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-600">
           Start by validating artwork before print production, then inspect

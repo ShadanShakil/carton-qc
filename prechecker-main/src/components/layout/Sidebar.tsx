@@ -75,7 +75,7 @@ export function Sidebar({
             <Focus size={20} strokeWidth={2.4} />
           </div>
           <div className="leading-tight">
-            <div className="text-base font-semibold text-white">QC Vision</div>
+            <div className="text-base font-semibold text-white leading-tight">New ART Development & Inspection</div>
             <div className="text-xs text-slate-400">Quality Control AI</div>
           </div>
         </Link>

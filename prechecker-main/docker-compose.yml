@@ -22,7 +22,7 @@ services:
       # - SMTP_PORT=587
       # - SMTP_USER=you@gmail.com
       # - SMTP_PASS=your-app-password
-      # - SMTP_FROM="Carton QC <you@gmail.com>"
+      # - SMTP_FROM="New ART Development & Inspection <you@gmail.com>"
       # - ADMIN_ALERT_EMAILS=admin@yourfactory.com
     restart: always
 
