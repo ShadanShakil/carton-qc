@@ -4,7 +4,7 @@ ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
 
-# Install system dependencies for node-canvas, sqlite, and sharp
+# Install system dependencies for node-canvas, sqlite, sharp, and tesseract
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
