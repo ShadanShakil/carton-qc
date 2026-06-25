@@ -23,6 +23,7 @@ FROM base AS dependencies
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
+RUN pnpm config set dangerouslyAllowAllBuilds true
 RUN pnpm install --frozen-lockfile
 
 FROM base AS builder
