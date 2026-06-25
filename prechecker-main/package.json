@@ -69,7 +69,9 @@
       "esbuild",
       "prisma",
       "sharp",
-      "onnxruntime-node"
+      "onnxruntime-node",
+      "tesseract.js",
+      "unrs-resolver"
     ]
   }
 }
